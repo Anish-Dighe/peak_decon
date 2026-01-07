@@ -179,6 +179,177 @@ class MultiPeakSpectrum:
         return fig, ax
 
 
+def generate_spectrum_from_params(params, x=None, num_points=1000):
+    """
+    Generate spectrum from predefined parameter array - ML-ready function
+
+    Parameters:
+    -----------
+    params : list of dict or 2D array
+        If list of dict: [{'alpha': 1.0, 'tau': 0.1, 'mu': 0.5, 'sigma': 0.05, 'amplitude': 1.0}, ...]
+        If 2D array: shape (n_peaks, 5) where columns are [alpha, tau, mu, sigma, amplitude]
+    x : array-like, optional
+        X values for spectrum. If None, creates linearly spaced points from 0 to 1
+    num_points : int
+        Number of points if x is not provided
+
+    Returns:
+    --------
+    tuple
+        (x_values, y_values, params_array) - spectrum and ground truth parameters
+    """
+    if x is None:
+        x = np.linspace(0, 1, num_points)
+
+    y_total = np.zeros_like(x)
+
+    # Convert params to standard format
+    if isinstance(params, np.ndarray):
+        # params is 2D array: (n_peaks, 5)
+        params_list = []
+        for row in params:
+            params_list.append({
+                'alpha': row[0],
+                'tau': row[1],
+                'mu': row[2],
+                'sigma': row[3],
+                'amplitude': row[4]
+            })
+        params = params_list
+
+    # Generate each peak and sum
+    for peak_params in params:
+        peak = GEGPeak(**peak_params)
+        _, y = peak.generate_peak(x, num_points)
+        y_total += y
+
+    # Convert params to array for ML use
+    params_array = np.array([[p['alpha'], p['tau'], p['mu'], p['sigma'], p['amplitude']]
+                             for p in params])
+
+    return x, y_total, params_array
+
+
+def generate_random_spectrum(n_components=3, x=None, num_points=1000,
+                            param_ranges=None, seed=None):
+    """
+    Generate random spectrum for ML training data
+
+    Parameters:
+    -----------
+    n_components : int
+        Number of peaks/components in the spectrum
+    x : array-like, optional
+        X values for spectrum
+    num_points : int
+        Number of points if x is not provided
+    param_ranges : dict, optional
+        Ranges for random parameter generation:
+        {
+            'alpha': (min, max),
+            'tau': (min, max),
+            'mu': (min, max),
+            'sigma': (min, max),
+            'amplitude': (min, max)
+        }
+        If None, uses sensible defaults for UV280 spectra
+    seed : int, optional
+        Random seed for reproducibility
+
+    Returns:
+    --------
+    tuple
+        (x_values, y_values, params_array) - spectrum and ground truth parameters
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    if param_ranges is None:
+        # Default ranges for UV280 spectra
+        param_ranges = {
+            'alpha': (0.5, 3.0),
+            'tau': (0.05, 0.3),
+            'mu': (0.15, 0.85),  # Keep peaks away from edges
+            'sigma': (0.02, 0.12),
+            'amplitude': (0.3, 1.0)
+        }
+
+    params = []
+    for _ in range(n_components):
+        peak_params = {
+            'alpha': np.random.uniform(*param_ranges['alpha']),
+            'tau': np.random.uniform(*param_ranges['tau']),
+            'mu': np.random.uniform(*param_ranges['mu']),
+            'sigma': np.random.uniform(*param_ranges['sigma']),
+            'amplitude': np.random.uniform(*param_ranges['amplitude'])
+        }
+        params.append(peak_params)
+
+    # Sort by mu to ensure consistent ordering
+    params = sorted(params, key=lambda p: p['mu'])
+
+    return generate_spectrum_from_params(params, x, num_points)
+
+
+def generate_training_batch(batch_size=32, n_components_range=(1, 10),
+                           num_points=1000, param_ranges=None,
+                           add_noise=False, noise_level=0.01):
+    """
+    Generate batch of training samples for ML
+
+    Parameters:
+    -----------
+    batch_size : int
+        Number of spectra to generate
+    n_components_range : tuple
+        (min, max) number of components per spectrum
+    num_points : int
+        Number of points in each spectrum
+    param_ranges : dict, optional
+        Parameter ranges for random generation
+    add_noise : bool
+        Whether to add Gaussian noise to spectra
+    noise_level : float
+        Standard deviation of Gaussian noise (relative to max intensity)
+
+    Returns:
+    --------
+    tuple
+        (spectra, params_list) where:
+        - spectra: array of shape (batch_size, num_points)
+        - params_list: list of parameter arrays, one per spectrum
+    """
+    x = np.linspace(0, 1, num_points)
+    spectra = []
+    params_list = []
+
+    for i in range(batch_size):
+        # Random number of components
+        n_components = np.random.randint(*n_components_range) + 1
+
+        # Generate spectrum
+        _, y, params = generate_random_spectrum(
+            n_components=n_components,
+            x=x,
+            num_points=num_points,
+            param_ranges=param_ranges,
+            seed=None
+        )
+
+        # Add noise if requested
+        if add_noise:
+            noise = np.random.normal(0, noise_level * np.max(y), size=y.shape)
+            y = y + noise
+            y = np.maximum(y, 0)  # Ensure non-negative
+
+        spectra.append(y)
+        params_list.append(params)
+
+    spectra = np.array(spectra)
+
+    return x, spectra, params_list
+
+
 def demo_single_peak_parameters():
     """
     Demonstrate the effect of different parameters on peak shape
