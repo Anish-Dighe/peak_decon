@@ -102,11 +102,25 @@ class OptimizationDeconvolver:
         tuple
             (n_components, parameters, metrics)
         """
-        # Auto-detect or use provided n_components
-        if n_components is None or initial_params is None:
+        # Generate initial parameters
+        if initial_params is None:
             if n_components is None:
+                # Auto-detect number of components
                 n_components = 3  # Default guess
-            n_components, initial_params = self.generate_initial_guess(x, y, n_components)
+                n_components, initial_params = self.generate_initial_guess(x, y, n_components)
+            else:
+                # User specified n_components, generate simple initial guess
+                initial_params = []
+                for i in range(n_components):
+                    # Evenly space peaks across the range
+                    mu = (i + 1) / (n_components + 1)
+                    initial_params.append({
+                        'alpha': 1.0,
+                        'tau': 0.1,
+                        'mu': mu,
+                        'sigma': 0.05,
+                        'amplitude': 1.0 / n_components
+                    })
 
         # Convert to flat array
         x0 = []
