@@ -7,6 +7,7 @@ for chromatography peak modeling.
 
 import numpy as np
 from scipy.stats import norm
+from scipy.integrate import trapezoid
 
 # Fixed grid - same for all data generation
 X_GRID = np.arange(0, 1.01, 0.01)  # 101 points from 0 to 1
@@ -196,6 +197,128 @@ def generate_complete_spectrum(n_components, tail_threshold=0.7, max_attempts=10
 
     # Failed to generate complete spectrum
     return None, None
+
+
+def normalize_by_max(y_spectrum):
+    """
+    Normalize spectrum by maximum y value
+
+    Parameters:
+    -----------
+    y_spectrum : ndarray
+        Spectrum intensity values
+
+    Returns:
+    --------
+    y_normalized : ndarray
+        Normalized spectrum with max value = 1.0
+    """
+    return y_spectrum / np.max(y_spectrum)
+
+
+def normalize_by_area(y_spectrum, x_grid=None):
+    """
+    Normalize spectrum by total area under the curve
+
+    Parameters:
+    -----------
+    y_spectrum : ndarray
+        Spectrum intensity values
+    x_grid : ndarray, optional
+        X-axis values (default: X_GRID)
+
+    Returns:
+    --------
+    y_normalized : ndarray
+        Normalized spectrum with total area = 1.0
+    """
+    if x_grid is None:
+        x_grid = X_GRID
+
+    # Calculate area using trapezoidal rule
+    area = trapezoid(y_spectrum, x_grid)
+
+    if area > 0:
+        return y_spectrum / area
+    else:
+        return y_spectrum
+
+
+def calculate_peak_theoretical_area(alpha, tau, mu, sigma, x_min=0.0, x_max=1.0):
+    """
+    Calculate theoretical complete area of a GEG peak by numerical integration
+    over extended range beyond observed x-axis limits
+
+    Parameters:
+    -----------
+    alpha, tau, mu, sigma : float
+        GEG peak parameters
+    x_min, x_max : float
+        Observed x-axis limits (default: 0.0 to 1.0)
+
+    Returns:
+    --------
+    total_area : float
+        Complete theoretical area of the peak
+    """
+    # Extend grid to capture complete peak
+    # Use ±5 sigma range from mu, but extend at least to ±0.5 beyond observed limits
+    extend_left = max(0.5, 5 * sigma)
+    extend_right = max(0.5, 5 * sigma)
+
+    x_extended_min = mu - extend_left
+    x_extended_max = mu + extend_right
+
+    # Create extended grid with fine resolution
+    x_extended = np.linspace(x_extended_min, x_extended_max, 1000)
+
+    # Calculate peak values over extended range
+    y_extended = geg_peak(x_extended, alpha, tau, mu, sigma)
+
+    # Calculate total area
+    total_area = trapezoid(y_extended, x_extended)
+
+    return total_area
+
+
+def normalize_by_complete_area(y_spectrum, params, x_grid=None):
+    """
+    Normalize spectrum by theoretical complete area assuming all peaks were complete
+
+    This resembles concentration normalization in chromatography where you normalize
+    by total concentration even if some peaks are cut off at detector limits.
+
+    Parameters:
+    -----------
+    y_spectrum : ndarray
+        Spectrum intensity values
+    params : ndarray, shape (n_components, 4)
+        Peak parameters [alpha, tau, mu, sigma] for each component
+    x_grid : ndarray, optional
+        X-axis values (default: X_GRID)
+
+    Returns:
+    --------
+    y_normalized : ndarray
+        Normalized spectrum by complete theoretical area
+    """
+    if x_grid is None:
+        x_grid = X_GRID
+
+    x_min, x_max = x_grid[0], x_grid[-1]
+
+    # Calculate theoretical complete area for each peak
+    total_theoretical_area = 0.0
+
+    for param_row in params:
+        alpha, tau, mu, sigma = param_row
+        peak_area = calculate_peak_theoretical_area(alpha, tau, mu, sigma, x_min, x_max)
+        total_theoretical_area += peak_area
+
+    if total_theoretical_area > 0:
+        return y_spectrum / total_theoretical_area
+    else:
+        return y_spectrum
 
 
 if __name__ == '__main__':
