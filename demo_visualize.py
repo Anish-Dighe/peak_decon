@@ -110,19 +110,22 @@ def plot_multi_component_spectra():
             print(f"Warning: Could not generate complete {n_comp}-component spectrum")
             continue
 
+        # Normalize by total spectrum max
+        total_max = np.max(y_total)
+        y_total_norm = y_total / total_max
+
         # Plot total spectrum (normalized)
-        y_total_norm = normalize_by_max(y_total)
         fig.add_trace(
             go.Scatter(x=X_GRID, y=y_total_norm, mode='lines',
                       name=f'Total ({n_comp} peaks)', line=dict(color='black', width=3)),
             row=row, col=col
         )
 
-        # Plot individual components (normalized by their own max)
+        # Plot individual components (normalized by total spectrum max)
         for i, param_row in enumerate(params):
             alpha, tau, mu, sigma = param_row
             y = geg_peak(X_GRID, alpha, tau, mu, sigma)
-            y_norm = normalize_by_max(y)  # Normalize each peak individually
+            y_norm = y / total_max  # Normalize by total max, not individual max
             color = colors_list[i % len(colors_list)]
             fig.add_trace(
                 go.Scatter(x=X_GRID, y=y_norm, mode='lines',
@@ -251,13 +254,17 @@ def plot_detailed_example():
     # Create figure
     fig = go.Figure()
 
-    # Plot individual peaks (normalized by their own max)
+    # Normalize by total spectrum max
+    total_max = np.max(y_total)
+    y_total_norm = y_total / total_max
+
+    # Plot individual peaks (normalized by total spectrum max)
     colors = ['rgba(255,0,0,0.5)', 'rgba(0,0,255,0.5)', 'rgba(0,255,0,0.5)']
 
     for i, (param_row, color) in enumerate(zip(params, colors)):
         alpha, tau, mu, sigma = param_row
         y = geg_peak(X_GRID, alpha, tau, mu, sigma)
-        y_norm = normalize_by_max(y)  # Normalize each peak individually
+        y_norm = y / total_max  # Normalize by total max
 
         fig.add_trace(
             go.Scatter(
@@ -271,7 +278,6 @@ def plot_detailed_example():
         )
 
     # Plot total (normalized)
-    y_total_norm = normalize_by_max(y_total)
     fig.add_trace(
         go.Scatter(
             x=X_GRID, y=y_total_norm,

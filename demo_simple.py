@@ -46,8 +46,9 @@ def plot_component_examples():
                 print(f"Warning: Could not generate complete {n_comp}-component spectrum")
                 continue
 
-            # Normalize by max
-            y_normalized = normalize_by_max(y_total)
+            # Normalize by total spectrum max
+            total_max = np.max(y_total)
+            y_normalized = y_total / total_max
 
             # Plot normalized total spectrum
             fig.add_trace(
@@ -58,11 +59,11 @@ def plot_component_examples():
                 row=row, col=col
             )
 
-            # Plot individual components
+            # Plot individual components (normalized by total max)
             for i, param_row in enumerate(params):
                 alpha, tau, mu, sigma = param_row
                 y_peak = geg_peak(X_GRID, alpha, tau, mu, sigma)
-                y_peak_norm = normalize_by_max(y_peak)
+                y_peak_norm = y_peak / total_max  # Normalize by total max
 
                 color = colors_list[i % len(colors_list)]
                 fig.add_trace(
@@ -110,14 +111,15 @@ def plot_detailed_examples():
         if params is None:
             continue
 
-        # Normalize
-        y_normalized = normalize_by_max(y_total)
+        # Normalize by total spectrum max
+        total_max = np.max(y_total)
+        y_normalized = y_total / total_max
 
-        # Plot individual peaks
+        # Plot individual peaks (normalized by total max)
         for i, param_row in enumerate(params):
             alpha, tau, mu, sigma = param_row
             y_peak = geg_peak(X_GRID, alpha, tau, mu, sigma)
-            y_peak_norm = normalize_by_max(y_peak)
+            y_peak_norm = y_peak / total_max  # Normalize by total max
 
             color = colors_list[i % len(colors_list)]
             fig.add_trace(
