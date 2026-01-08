@@ -296,7 +296,13 @@ def plot_parameter_comparison(results_list):
         horizontal_spacing=0.08
     )
 
-    param_names = ['α', 'τ', 'μ', 'σ']
+    # Parameter bounds for axis limits
+    param_bounds = [
+        (0.5, 3.0),    # α
+        (0.05, 0.3),   # τ
+        (0.0, 1.0),    # μ
+        (0.01, 0.4)    # σ
+    ]
 
     for test_idx, res in enumerate(results_list):
         row = test_idx + 1
@@ -312,29 +318,45 @@ def plot_parameter_comparison(results_list):
             true_vals = params_true[:, param_idx]
             est_vals = params_est[:, param_idx]
 
+            # Get axis limits from parameter bounds
+            axis_min, axis_max = param_bounds[param_idx]
+
+            # Add x=y reference line first (so it's behind markers)
+            fig.add_trace(
+                go.Scatter(
+                    x=[axis_min, axis_max],
+                    y=[axis_min, axis_max],
+                    mode='lines',
+                    line=dict(color='gray', dash='dash', width=2),
+                    name='Perfect Fit (x=y)',
+                    showlegend=(test_idx == 0 and param_idx == 0)
+                ),
+                row=row, col=col
+            )
+
             # Scatter plot: true vs estimated
             fig.add_trace(
                 go.Scatter(
                     x=true_vals,
                     y=est_vals,
                     mode='markers',
-                    marker=dict(size=10, color='blue'),
-                    showlegend=False
+                    marker=dict(size=12, color='blue', line=dict(width=1, color='black')),
+                    name='Estimates',
+                    showlegend=(test_idx == 0 and param_idx == 0)
                 ),
                 row=row, col=col
             )
 
-            # Add diagonal line (perfect fit)
-            min_val = min(true_vals.min(), est_vals.min())
-            max_val = max(true_vals.max(), est_vals.max())
-            fig.add_trace(
-                go.Scatter(
-                    x=[min_val, max_val],
-                    y=[min_val, max_val],
-                    mode='lines',
-                    line=dict(color='red', dash='dash', width=1),
-                    showlegend=False
-                ),
+            # Set equal axes with same range
+            fig.update_xaxes(
+                range=[axis_min, axis_max],
+                constrain='domain',
+                row=row, col=col
+            )
+            fig.update_yaxes(
+                range=[axis_min, axis_max],
+                scaleanchor=f"x{test_idx*4 + param_idx + 1 if test_idx*4 + param_idx > 0 else ''}",
+                scaleratio=1,
                 row=row, col=col
             )
 
@@ -344,20 +366,24 @@ def plot_parameter_comparison(results_list):
                 text=f"MAE: {mae:.4f}",
                 xref=f"x{test_idx*4 + param_idx + 1 if test_idx*4 + param_idx > 0 else ''}",
                 yref=f"y{test_idx*4 + param_idx + 1 if test_idx*4 + param_idx > 0 else ''}",
-                x=0.95, y=0.05,
-                xanchor='right', yanchor='bottom',
+                x=axis_min + 0.05 * (axis_max - axis_min),
+                y=axis_max - 0.05 * (axis_max - axis_min),
+                xanchor='left', yanchor='top',
                 showarrow=False,
-                bgcolor="rgba(255,255,255,0.8)",
-                font=dict(size=8)
+                bgcolor="rgba(255,255,255,0.9)",
+                bordercolor="black",
+                borderwidth=1,
+                font=dict(size=9)
             )
 
     fig.update_xaxes(title_text="True Value")
     fig.update_yaxes(title_text="Estimated Value")
 
     fig.update_layout(
-        title="Parameter Estimation Accuracy: True vs Estimated",
+        title="Parameter Estimation Accuracy: True vs Estimated (x=y line shows perfect fit)",
         height=300 * n_tests,
-        showlegend=False
+        showlegend=True,
+        legend=dict(x=1.02, y=1.0)
     )
 
     output_path = os.path.join(RESULTS_DIR, 'parameter_comparison.html')
