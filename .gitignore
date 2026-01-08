@@ -46,6 +46,10 @@ ENV/
 *.png
 *.jpg
 *.pdf
+*.html
+
+# Results directory
+results/
 
 # OS
 .DS_Store
