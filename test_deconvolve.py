@@ -209,78 +209,32 @@ def plot_deconvolution_results(results_list):
         horizontal_spacing=0.10
     )
 
-    colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown',
-              'pink', 'gray', 'olive', 'cyan']
-
     for idx, res in enumerate(results_list):
         row = idx // cols + 1
         col = idx % cols + 1
 
-        n_comp = res['n_components']
-        params_true = res['params_true']
-        params_est = res['params_estimated']
         y_true = res['y_true']
         y_fit = res['y_fitted']
 
-        # Plot true individual peaks
-        total_max_true = np.max(y_true)
-        for i, param_row in enumerate(params_true):
-            alpha, tau, mu, sigma = param_row
-            y_peak = geg_peak(X_GRID, alpha, tau, mu, sigma)
-            y_peak_norm = y_peak / total_max_true
-
-            color = colors[i % len(colors)]
-            fig.add_trace(
-                go.Scatter(
-                    x=X_GRID, y=y_peak_norm,
-                    mode='lines',
-                    name=f'True {i+1}',
-                    line=dict(color=color, width=1, dash='dot'),
-                    opacity=0.4,
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
-
-        # Plot estimated individual peaks
-        total_max_est = np.max(y_fit)
-        for i, param_row in enumerate(params_est):
-            alpha, tau, mu, sigma = param_row
-            y_peak = geg_peak(X_GRID, alpha, tau, mu, sigma)
-            y_peak_norm = y_peak / total_max_est
-
-            color = colors[i % len(colors)]
-            fig.add_trace(
-                go.Scatter(
-                    x=X_GRID, y=y_peak_norm,
-                    mode='lines',
-                    name=f'Est {i+1}',
-                    line=dict(color=color, width=1, dash='dash'),
-                    opacity=0.6,
-                    showlegend=False
-                ),
-                row=row, col=col
-            )
-
-        # Plot true total (black solid)
+        # Plot true total spectrum (black solid line)
         fig.add_trace(
             go.Scatter(
                 x=X_GRID, y=y_true,
                 mode='lines',
-                name='True Total',
-                line=dict(color='black', width=2),
+                name='True Spectrum',
+                line=dict(color='black', width=2.5),
                 showlegend=(idx == 0)
             ),
             row=row, col=col
         )
 
-        # Plot fitted total (blue dashed)
+        # Plot fitted total spectrum (red dashed line)
         fig.add_trace(
             go.Scatter(
                 x=X_GRID, y=y_fit,
                 mode='lines',
-                name='Fitted',
-                line=dict(color='blue', width=2, dash='dash'),
+                name='Fitted Spectrum',
+                line=dict(color='red', width=2, dash='dash'),
                 showlegend=(idx == 0)
             ),
             row=row, col=col
@@ -288,8 +242,10 @@ def plot_deconvolution_results(results_list):
 
         # Add metrics annotation
         metrics_text = (
-            f"MSE: {res['mse']:.6f}<br>"
-            f"MAE: {res['mae_overall']:.4f}<br>"
+            f"<b>n_comp: {res['n_components']}</b><br>"
+            f"MSE: {res['mse']:.8f}<br>"
+            f"R²: {res['r2']:.6f}<br>"
+            f"Param MAE: {res['mae_overall']:.4f}<br>"
             f"Time: {res['elapsed_time']:.1f}s"
         )
 
@@ -297,13 +253,13 @@ def plot_deconvolution_results(results_list):
             text=metrics_text,
             xref=f"x{idx+1 if idx > 0 else ''}",
             yref=f"y{idx+1 if idx > 0 else ''}",
-            x=0.98, y=0.98,
-            xanchor='right', yanchor='top',
+            x=0.02, y=0.98,
+            xanchor='left', yanchor='top',
             showarrow=False,
-            bgcolor="rgba(255,255,255,0.85)",
+            bgcolor="rgba(255,255,255,0.9)",
             bordercolor="black",
             borderwidth=1,
-            font=dict(size=9)
+            font=dict(size=10)
         )
 
     fig.update_xaxes(title_text="Position")
