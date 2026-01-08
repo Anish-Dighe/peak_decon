@@ -5,11 +5,17 @@ Tests optimization with different numbers of components (1-5)
 and generates visualization comparing fitted vs observed spectra.
 """
 
+import sys
+import os
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import time
-import os
 
 from peak_generator import (X_GRID, geg_peak, generate_complete_spectrum,
                             normalize_by_max)
@@ -17,7 +23,8 @@ from deconvolve import (deconvolve_spectrum, calculate_r2_score,
                        calculate_parameter_mae)
 
 
-RESULTS_DIR = 'results'
+# Results directory at project root
+RESULTS_DIR = Path(__file__).parent.parent / 'results'
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
 

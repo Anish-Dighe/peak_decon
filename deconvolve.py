@@ -18,7 +18,7 @@ def deconvolve_spectrum(y_observed, n_components, max_iter=1000,
     Parameters:
     -----------
     y_observed : array, shape (101,)
-        Observed spectrum (will be normalized if not already)
+        Observed spectrum (unnormalized, absolute intensities)
     n_components : int
         Number of peaks (1-10)
     max_iter : int
@@ -35,7 +35,7 @@ def deconvolve_spectrum(y_observed, n_components, max_iter=1000,
     params_estimated : ndarray, shape (n_components, 4)
         Estimated parameters [α, τ, μ, σ] for each peak, sorted by μ
     y_fitted : ndarray, shape (101,)
-        Fitted spectrum from estimated parameters
+        Fitted spectrum from estimated parameters (unnormalized)
     result : OptimizeResult
         Full optimization result from scipy
     """
@@ -46,8 +46,7 @@ def deconvolve_spectrum(y_observed, n_components, max_iter=1000,
     if len(y_observed) != 101:
         raise ValueError(f"y_observed must have length 101, got {len(y_observed)}")
 
-    # Normalize observed spectrum
-    y_observed = normalize_by_max(y_observed)
+    # NO normalization - work with absolute intensities
 
     if verbose:
         print(f"Deconvolving spectrum with {n_components} component(s)")
@@ -85,9 +84,8 @@ def deconvolve_spectrum(y_observed, n_components, max_iter=1000,
     # Sort by μ (peak position) for identifiability
     params_estimated = params_estimated[params_estimated[:, 2].argsort()]
 
-    # Generate fitted spectrum
+    # Generate fitted spectrum (no normalization)
     y_fitted = generate_spectrum(params_estimated)
-    y_fitted = normalize_by_max(y_fitted)
 
     if verbose:
         print(f"\nOptimization {'converged' if result.success else 'did not converge'}")
@@ -139,7 +137,7 @@ def loss_function(params_flat, y_observed, n_components):
     params_flat : array, shape (4 * n_components,)
         Flattened parameters [α₁, τ₁, μ₁, σ₁, α₂, ...]
     y_observed : array, shape (101,)
-        Observed spectrum (normalized)
+        Observed spectrum (unnormalized, absolute intensities)
     n_components : int
         Number of peaks
 
@@ -155,13 +153,10 @@ def loss_function(params_flat, y_observed, n_components):
     # This ensures consistent ordering regardless of optimization path
     params = params[params[:, 2].argsort()]
 
-    # Generate predicted spectrum
+    # Generate predicted spectrum (no normalization)
     y_predicted = generate_spectrum(params)
 
-    # Normalize predicted spectrum
-    y_predicted = normalize_by_max(y_predicted)
-
-    # Calculate Mean Squared Error
+    # Calculate Mean Squared Error on absolute intensities
     mse = np.mean((y_observed - y_predicted) ** 2)
 
     return mse
