@@ -10,7 +10,8 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from peak_generator import (X_GRID, geg_peak, generate_random_params,
-                            generate_spectrum, generate_complete_spectrum)
+                            generate_spectrum, generate_complete_spectrum,
+                            normalize_by_max)
 
 
 # Create results directory if it doesn't exist
@@ -109,30 +110,32 @@ def plot_multi_component_spectra():
             print(f"Warning: Could not generate complete {n_comp}-component spectrum")
             continue
 
-        # Plot total spectrum
+        # Plot total spectrum (normalized)
+        y_total_norm = normalize_by_max(y_total)
         fig.add_trace(
-            go.Scatter(x=X_GRID, y=y_total, mode='lines',
+            go.Scatter(x=X_GRID, y=y_total_norm, mode='lines',
                       name=f'Total ({n_comp} peaks)', line=dict(color='black', width=3)),
             row=row, col=col
         )
 
-        # Plot individual components
+        # Plot individual components (normalized by their own max)
         for i, param_row in enumerate(params):
             alpha, tau, mu, sigma = param_row
             y = geg_peak(X_GRID, alpha, tau, mu, sigma)
+            y_norm = normalize_by_max(y)  # Normalize each peak individually
             color = colors_list[i % len(colors_list)]
             fig.add_trace(
-                go.Scatter(x=X_GRID, y=y, mode='lines',
+                go.Scatter(x=X_GRID, y=y_norm, mode='lines',
                           name=f'Peak {i+1}', line=dict(color=color, width=1, dash='dot'),
                           opacity=0.6),
                 row=row, col=col
             )
 
     fig.update_xaxes(title_text="Position")
-    fig.update_yaxes(title_text="Intensity")
+    fig.update_yaxes(title_text="Normalized Intensity")
 
     fig.update_layout(
-        title_text="Multi-Component Spectra (Complete Peaks Only)",
+        title_text="Multi-Component Spectra (Normalized, Complete Peaks)",
         height=800,
         showlegend=False
     )
@@ -165,18 +168,19 @@ def plot_component_examples():
             if params is None:
                 continue
 
-            # Plot total spectrum
+            # Normalize and plot total spectrum
+            y_total_norm = normalize_by_max(y_total)
             fig.add_trace(
-                go.Scatter(x=X_GRID, y=y_total, mode='lines',
+                go.Scatter(x=X_GRID, y=y_total_norm, mode='lines',
                           name=f'{n_comp}-comp', line=dict(color='blue', width=2)),
                 row=row, col=col
             )
 
     fig.update_xaxes(title_text="Position")
-    fig.update_yaxes(title_text="Intensity")
+    fig.update_yaxes(title_text="Normalized Intensity")
 
     fig.update_layout(
-        title_text="Multiple Examples: 2-5 Components (Complete Peaks)",
+        title_text="Multiple Examples: 2-5 Components (Normalized, Complete Peaks)",
         height=1000,
         showlegend=False
     )
@@ -209,8 +213,11 @@ def plot_training_samples():
             print(f"Warning: Could not generate complete spectrum for sample {idx+1}")
             continue
 
+        # Normalize total spectrum
+        y_total_norm = normalize_by_max(y_total)
+
         fig.add_trace(
-            go.Scatter(x=X_GRID, y=y_total, mode='lines',
+            go.Scatter(x=X_GRID, y=y_total_norm, mode='lines',
                       name=f'{n_comp} peaks', line=dict(color='blue')),
             row=row, col=col
         )
@@ -219,10 +226,10 @@ def plot_training_samples():
         fig.layout.annotations[idx].text = f'Sample {idx+1} ({n_comp} peaks)'
 
     fig.update_xaxes(title_text="Position")
-    fig.update_yaxes(title_text="Intensity")
+    fig.update_yaxes(title_text="Normalized Intensity")
 
     fig.update_layout(
-        title_text="Random Training Data Samples (1-10 Components, Complete Peaks)",
+        title_text="Random Training Data Samples (Normalized, 1-10 Components)",
         height=900,
         showlegend=False
     )
@@ -244,16 +251,17 @@ def plot_detailed_example():
     # Create figure
     fig = go.Figure()
 
-    # Plot individual peaks
+    # Plot individual peaks (normalized by their own max)
     colors = ['rgba(255,0,0,0.5)', 'rgba(0,0,255,0.5)', 'rgba(0,255,0,0.5)']
 
     for i, (param_row, color) in enumerate(zip(params, colors)):
         alpha, tau, mu, sigma = param_row
         y = geg_peak(X_GRID, alpha, tau, mu, sigma)
+        y_norm = normalize_by_max(y)  # Normalize each peak individually
 
         fig.add_trace(
             go.Scatter(
-                x=X_GRID, y=y,
+                x=X_GRID, y=y_norm,
                 mode='lines',
                 name=f'Component {i+1} (μ={mu:.2f}, σ={sigma:.2f})',
                 line=dict(color=color, width=2),
@@ -262,10 +270,11 @@ def plot_detailed_example():
             )
         )
 
-    # Plot total
+    # Plot total (normalized)
+    y_total_norm = normalize_by_max(y_total)
     fig.add_trace(
         go.Scatter(
-            x=X_GRID, y=y_total,
+            x=X_GRID, y=y_total_norm,
             mode='lines',
             name='Total Spectrum',
             line=dict(color='black', width=3)
@@ -295,9 +304,9 @@ def plot_detailed_example():
     )
 
     fig.update_layout(
-        title="3-Component Spectrum Example (Complete Peaks)",
+        title="3-Component Spectrum Example (Normalized, Complete Peaks)",
         xaxis_title="Position (normalized)",
-        yaxis_title="Intensity",
+        yaxis_title="Normalized Intensity",
         height=600,
         hovermode='x unified'
     )
