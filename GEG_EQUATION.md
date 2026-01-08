@@ -1,11 +1,11 @@
 # Generalized Exponential-Gaussian (GEG) Distribution
 
-## Mathematical Form
+## Mathematical Form - CORRECTED
 
-The GEG probability density function implemented in this code:
+The GEG probability density function:
 
 ```
-φ(x) = α·τ·e^(-(x-μ)/τ + σ²/(2τ²)) · Φ((x-μ)/σ - σ/τ) · [Φ((x-μ)/σ - σ/τ) - e^(-(x-μ)/τ + σ²/(2τ²))·Φ((x-μ)/σ - σ/τ)]^(α-1)
+φ(x) = (α/τ)·e^(-(x-μ)/τ + σ²/(2τ²)) · Φ((x-μ)/σ - σ/τ) · [Φ((x-μ)/σ) - e^(-(x-μ)/τ + σ²/(2τ²))·Φ((x-μ)/σ - σ/τ)]^(α-1)
 ```
 
 Where:
@@ -28,22 +28,37 @@ z = (x - μ) / σ
 E = exp[-(x - μ)/τ + σ²/(2τ²)]
 ```
 
-**CDF argument:**
+**Two different CDF terms:**
 ```
-Φ_arg = Φ(z - σ/τ) = Φ((x - μ)/σ - σ/τ)
+Φ₁ = Φ(z) = Φ((x - μ)/σ)                    [used inside bracket]
+
+Φ₂ = Φ(z - σ/τ) = Φ((x - μ)/σ - σ/τ)        [used outside bracket and inside bracket]
 ```
 
 ### Rewritten equation:
 
 ```
-φ(x) = α · τ · E · Φ_arg · [Φ_arg - E · Φ_arg]^(α-1)
+φ(x) = (α/τ) · E · Φ₂ · [Φ₁ - E · Φ₂]^(α-1)
 ```
 
-Or equivalently:
+Expanded:
+```
+φ(x) = (α/τ) · E · Φ((x-μ)/σ - σ/τ) · [Φ((x-μ)/σ) - E · Φ((x-μ)/σ - σ/τ)]^(α-1)
+```
 
-```
-φ(x) = α · τ · E · Φ_arg · [Φ_arg · (1 - E)]^(α-1)
-```
+---
+
+## Key Observations
+
+**Note the TWO different Φ terms:**
+
+1. **Φ₁ = Φ(z) = Φ((x-μ)/σ)**
+   - Standard normal CDF of z-score
+   - Appears ONLY as first term inside the bracket
+
+2. **Φ₂ = Φ(z - σ/τ) = Φ((x-μ)/σ - σ/τ)**
+   - Shifted CDF
+   - Appears outside the bracket AND as second term inside bracket
 
 ---
 
@@ -59,35 +74,7 @@ Or equivalently:
 
 ---
 
-## Parameter Effects
-
-### α (alpha) - Shape Parameter
-- **α = 1.0**: Exponential-Gaussian (standard case)
-- **α < 1.0**: More skewed, sharper peak
-- **α > 1.0**: Less skewed, broader distribution
-- Controls both **skewness** and **kurtosis**
-
-### τ (tau) - Exponential Component
-- **Small τ (0.05)**: Short tail, more symmetric
-- **Large τ (0.3)**: Long tail, more asymmetric
-- Controls the **tailing** behavior common in chromatography
-- Represents adsorption/desorption effects in separation
-
-### μ (mu) - Location
-- **μ = 0.5**: Peak centered at midpoint
-- Determines **retention time** or **elution position**
-- Range: 0 to 1 (normalized coordinates)
-- In real chromatography: maps to actual time/volume
-
-### σ (sigma) - Scale/Width
-- **Small σ (0.02)**: Narrow, sharp peak
-- **Large σ (0.12)**: Wide, broad peak
-- Represents **band broadening** in chromatography
-- Related to column efficiency
-
----
-
-## Python Implementation
+## Correct Python Implementation
 
 ```python
 def pdf(self, x):
@@ -96,17 +83,17 @@ def pdf(self, x):
 
     # Exponential term
     exp_term = -(x - self.mu) / self.tau + (self.sigma**2) / (2 * self.tau**2)
-    exp_val = np.exp(exp_term)
+    E = np.exp(exp_term)
 
-    # CDF argument
-    phi_arg = z - self.sigma / self.tau
-    Phi = norm.cdf(phi_arg)  # Standard normal CDF
+    # TWO different CDF terms
+    Phi_1 = norm.cdf(z)                      # Φ(z) - for inside bracket
+    Phi_2 = norm.cdf(z - self.sigma / self.tau)  # Φ(z - σ/τ) - for outside & inside bracket
 
     # Main equation components
-    term1 = self.alpha * self.tau * exp_val * Phi
+    term1 = (self.alpha / self.tau) * E * Phi_2  # Note: α/τ not α·τ
 
-    # Bracket term: [Φ(...) - e^(...)·Φ(...)]^(α-1)
-    bracket = Phi - exp_val * Phi  # = Φ(1 - E)
+    # Bracket term: [Φ₁ - E·Φ₂]^(α-1)
+    bracket = Phi_1 - E * Phi_2  # Note: Phi_1 (not Phi_2) for first term
     bracket = np.maximum(bracket, 1e-10)  # Avoid division by zero
 
     if self.alpha != 1.0:
@@ -123,47 +110,55 @@ def pdf(self, x):
 
 ---
 
-## Special Cases
+## Step-by-Step Calculation
 
-### When α = 1:
-The equation simplifies (the bracket term becomes 1):
-```
-φ(x) = τ · E · Φ_arg
-```
-This is the **Exponential-Gaussian (EG) distribution**.
+Given input `x` and parameters (α, τ, μ, σ):
 
-### When τ → 0:
-As tau approaches zero, the exponential component vanishes and the distribution approaches a **Gaussian**.
+1. Calculate **z-score**: `z = (x - μ) / σ`
 
-### When τ → ∞:
-As tau approaches infinity, the distribution becomes more exponential-like with a strong tail.
+2. Calculate **exponential term**: `E = exp[-(x-μ)/τ + σ²/(2τ²)]`
+
+3. Calculate **two CDF values**:
+   - `Φ₁ = Φ(z)`
+   - `Φ₂ = Φ(z - σ/τ)`
+
+4. Calculate **outside term**: `(α/τ) · E · Φ₂`
+
+5. Calculate **bracket**: `[Φ₁ - E · Φ₂]`
+
+6. Calculate **bracket power**: `bracket^(α-1)`
+
+7. **Multiply**: `φ(x) = (α/τ) · E · Φ₂ · [Φ₁ - E · Φ₂]^(α-1)`
 
 ---
 
-## Normalization
+## Special Cases
 
-**Important**: The implemented function applies two normalizations:
-
-1. **Peak normalization**: Divides by `max(result)` to normalize peak height to 1.0
-2. **Amplitude scaling**: Multiplies by the `amplitude` parameter
-
-Final output:
+### When α = 1:
+The bracket term becomes 1:
 ```
-output(x) = amplitude · [φ(x) / max(φ(x))]
+φ(x) = (1/τ) · E · Φ₂
+φ(x) = (1/τ) · exp[-(x-μ)/τ + σ²/(2τ²)] · Φ((x-μ)/σ - σ/τ)
 ```
+This is the **Exponential-Gaussian (EG) distribution**.
 
-This ensures all peaks have comparable heights regardless of parameter combinations.
+---
+
+## What's Different from Original Implementation
+
+**Mistake 1: Coefficient**
+- ❌ Original: `α · τ` (alpha times tau)
+- ✅ Correct: `α / τ` (alpha divided by tau)
+
+**Mistake 2: CDF inside bracket**
+- ❌ Original: `Φ(z - σ/τ) - E · Φ(z - σ/τ)` (same Φ for both terms)
+- ✅ Correct: `Φ(z) - E · Φ(z - σ/τ)` (different Φ for first term)
 
 ---
 
 ## Reference
 
 Original paper: [Generalized Exponential-Gaussian Distribution](https://pmc.ncbi.nlm.nih.gov/articles/PMC9871144/)
-
-The GEG distribution is particularly useful for modeling:
-- **Chromatography peaks** with tailing
-- **Asymmetric peaks** in separation science
-- **Real-world peak shapes** that deviate from ideal Gaussian behavior
 
 ---
 
@@ -179,3 +174,11 @@ where each φ_i has its own parameters: (α_i, τ_i, μ_i, σ_i, A_i)
 ```
 
 This creates overlapping peaks that need to be deconvoluted to recover individual components.
+
+---
+
+## IMPORTANT NOTE
+
+**The current code implementation has BOTH mistakes.**
+
+Before using this for training data or deconvolution, the code needs to be corrected to match this equation.
