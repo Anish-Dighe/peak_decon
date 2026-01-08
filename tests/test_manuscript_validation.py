@@ -63,6 +63,9 @@ def test_manuscript_plot_1():
     )
 
     output_path = RESULTS_DIR / 'manuscript_plot1.html'
+    # Delete old file if exists
+    if output_path.exists():
+        output_path.unlink()
     fig.write_html(str(output_path))
     print(f"Saved: {output_path}")
 
@@ -111,6 +114,9 @@ def test_manuscript_plot_2():
     )
 
     output_path = RESULTS_DIR / 'manuscript_plot2.html'
+    # Delete old file if exists
+    if output_path.exists():
+        output_path.unlink()
     fig.write_html(str(output_path))
     print(f"Saved: {output_path}")
 
@@ -159,6 +165,9 @@ def test_manuscript_plot_3():
     )
 
     output_path = RESULTS_DIR / 'manuscript_plot3.html'
+    # Delete old file if exists
+    if output_path.exists():
+        output_path.unlink()
     fig.write_html(str(output_path))
     print(f"Saved: {output_path}")
 
@@ -273,6 +282,9 @@ def plot_all_three_combined():
     )
 
     output_path = RESULTS_DIR / 'manuscript_combined.html'
+    # Delete old file if exists
+    if output_path.exists():
+        output_path.unlink()
     fig.write_html(str(output_path))
     print(f"Saved: {output_path}")
 
