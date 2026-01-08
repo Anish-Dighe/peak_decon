@@ -8,10 +8,11 @@ Tests can be run from the **project root directory**:
 
 ```bash
 # From project root
-python tests/test_clean.py              # ⭐ RECOMMENDED - clean 2x2 layout
-python tests/test_no_normalization.py   # Multiple separate plots
-python tests/test_deconvolve.py         # Legacy (with normalization)
-python tests/test_detailed_comparison.py # Legacy (with normalization)
+python tests/test_clean.py                  # ⭐ RECOMMENDED - clean 2x2 layout
+python tests/test_manuscript_validation.py  # Validate against published manuscript
+python tests/test_no_normalization.py       # Multiple separate plots
+python tests/test_deconvolve.py             # Legacy (with normalization)
+python tests/test_detailed_comparison.py    # Legacy (with normalization)
 ```
 
 ## Available Tests
@@ -55,7 +56,39 @@ Tests deconvolution **WITHOUT normalization** with clean 2x2 layout.
 - R² > 0.999 for most cases
 - Easy visual comparison of true vs fitted decompositions
 
-### 2. `test_no_normalization.py`
+### 2. `test_manuscript_validation.py`
+Validate GEG implementation against published manuscript plots.
+
+**What it does:**
+- Reproduces 3 plots from published manuscript showing effect of α parameter
+- Tests GEG equation with specific parameter combinations from paper
+- Uses extended X ranges (beyond 0-1) to match manuscript
+
+**Test cases:**
+- **Plot 1:** Small τ (0.05) - narrow peak behavior
+  - Parameters: τ=0.05, μ=7, σ=0.25, α=[0.01, 0.008, 0.01]
+  - X range: -5 to 15
+
+- **Plot 2:** Moderate τ (3.5) - typical asymmetric peaks
+  - Parameters: τ=3.5, μ=4.5, σ=1.75, α=[0.25, 0.75, 2.75]
+  - X range: -10 to 15
+
+- **Plot 3:** Large α values - extreme asymmetry
+  - Parameters: τ=0.5, μ=2.25, σ=1, α=[1, 4.75, 11.75]
+  - X range: -10 to 15
+
+**Output files** (in `results/` folder):
+- `manuscript_plot1.html` - Individual plot 1
+- `manuscript_plot2.html` - Individual plot 2
+- `manuscript_plot3.html` - Individual plot 3
+- `manuscript_combined.html` - All 3 plots side-by-side for easy comparison
+
+**Purpose:**
+- Verify GEG equation implementation is correct
+- Compare visual appearance with published results
+- Validate peak shape behavior across parameter ranges
+
+### 3. `test_no_normalization.py`
 Tests deconvolution **WITHOUT normalization** (uses absolute intensities).
 
 **What it does:**
@@ -76,7 +109,7 @@ Tests deconvolution **WITHOUT normalization** (uses absolute intensities).
 - Absolute intensities constrain the solution space
 - R² > 0.999 for most cases
 
-### 2. `test_deconvolve.py`
+### 4. `test_deconvolve.py`
 Basic test suite with normalized data (legacy).
 
 **What it does:**
@@ -88,7 +121,7 @@ Basic test suite with normalized data (legacy).
 - `deconvolution_test_results.html` - Total spectra comparison
 - `parameter_comparison.html` - True vs estimated parameters
 
-### 3. `test_detailed_comparison.py`
+### 5. `test_detailed_comparison.py`
 Detailed verification with normalized data (legacy).
 
 **What it does:**
